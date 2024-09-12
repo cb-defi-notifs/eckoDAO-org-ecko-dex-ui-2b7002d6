@@ -41,6 +41,7 @@ import {
 import theme, { commonColors } from '../styles/theme';
 import { Helmet } from 'react-helmet';
 import useQueryParams from '../hooks/useQueryParams';
+import { KADDEX_NAMESPACE } from '../constants/contextConstants';
 
 const Container = styled(FadeIn)`
   width: 100%;
@@ -122,7 +123,7 @@ const SwapContainer = () => {
     amount: '',
     balance: account.account.balance || '',
     coin: pact.allTokens?.[query.get('token1')] ? query.get('token1') : 'KDX',
-    address: pact.allTokens?.[query.get('token1')] ? pact.allTokens?.[query.get('token1')]?.code : 'kaddex.kdx',
+    address: pact.allTokens?.[query.get('token1')] ? pact.allTokens?.[query.get('token1')]?.code : `${KADDEX_NAMESPACE}.kdx`,
     precision: pact.allTokens?.[query.get('token1')] ? pact.allTokens?.[query.get('token1')]?.precision : 12,
   });
 
@@ -137,6 +138,16 @@ const SwapContainer = () => {
   const [fetchingPair, setFetchingPair] = useState(false);
   const [noLiquidity, setNoLiquidity] = useState(false);
   const [priceImpact, setPriceImpact] = useState('');
+
+  useEffect(()=>{
+    if(pact.pairReserve){
+      if(pact.pairReserve.token0 <= 0 && pact.pairReserve.token1 <= 0){
+        setNoLiquidity(true)
+      }else{
+        setNoLiquidity(false)
+      }
+    }
+   },[pact.pairReserve]);
 
   useEffect(() => {
     if (!isNaN(fromValues.amount)) {
@@ -157,6 +168,7 @@ const SwapContainer = () => {
                 ),
               })
             );
+            throttle(500, safeSetTo(), toValues.precision);
           } else {
             debounce(
               500,
@@ -169,6 +181,7 @@ const SwapContainer = () => {
                 ).toFixed(toValues.precision),
               })
             );
+            debounce(500, safeSetTo(), toValues.precision);
           }
         }
       }
@@ -346,6 +359,24 @@ const SwapContainer = () => {
       }, 250);
     }
   };
+
+    // Check if their is enough liquidity before setting the from amount
+    const safeSetTo = () => {
+      setNoLiquidity(false);
+      if (0 >= pact.computeOut(fromValues.amount)) {
+        setNoLiquidity(true);
+        setToValues({
+          ...toValues,
+          amount: 0,
+        });
+      } else {
+        setToValues({
+          ...toValues,
+          amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision),
+        });
+      }
+    };
+    
   // Check if their is enough liquidity before setting the from amount
   const safeSetFrom = () => {
     setNoLiquidity(false);

@@ -23,9 +23,9 @@ const initialMonthlyRange = {
 const TokenInfoContainer = () => {
   const history = useHistory();
   const { token } = useParams();
+
   const pact = usePactContext();
   const { themeMode } = useApplicationContext();
-
   const asset =
     (pact.allTokens?.[token].statsID || pact.allTokens?.[token].code) === 'coin'
       ? 'KDA'
@@ -61,12 +61,10 @@ const TokenInfoContainer = () => {
           moment().subtract(1, 'months').toDate(),
           pact.allTokens[token].statsID || pact.allTokens[token].code
         );
-        if (pastLastMonthVolume) {
-          setMonthlyVolumeRange({
-            initial: pastLastMonthVolume,
-            final: lastMonthVolume,
-          });
-        }
+        setMonthlyVolumeRange({
+          initial: pastLastMonthVolume,
+          final: lastMonthVolume,
+        });
       }
       let price24Diff = null;
       if (asset === 'KDA') {
@@ -99,9 +97,14 @@ const TokenInfoContainer = () => {
             onClick={() => history.goBack()}
           />
           <CryptoContainer style={{ marginRight: 8 }}>{pact.allTokens?.[token].icon}</CryptoContainer>
-          <Label fontSize={24} fontFamily="syncopate">
-            {token}
-          </Label>
+          <div>
+            <Label fontSize={24} fontFamily="syncopate">
+              {token}
+            </Label>
+            <Label fontSize={12} className="mobile-none" color={commonColors.gameEditionBlueGrey}>
+              {pact.allTokens?.[token].code}
+            </Label>
+          </div>
         </div>
         {!pact.allTokens?.[token].isVerified && (
           <CustomButton

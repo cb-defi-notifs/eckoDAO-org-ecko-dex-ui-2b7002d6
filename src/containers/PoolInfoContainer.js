@@ -27,6 +27,8 @@ import { convertUTCToSecond } from '../utils/time-utils';
 import { shortenAddress } from '../utils/string-utils';
 import moment from 'moment';
 import { ROUTE_ANALYTICS_STATS, ROUTE_LIQUIDITY_ADD_LIQUIDITY_SINGLE_SIDED, ROUTE_SWAP } from '../router/routes';
+import Banner from '../components/layout/header/Banner';
+import DecimalFormatted from '../components/shared/DecimalFormatted';
 
 const formatPrice = (price, precision = 3) => {
   return `$ ${humanReadableNumber(price, 3) !== '0.000' ? humanReadableNumber(price, 3) : price.toFixed(precision)}`;
@@ -97,6 +99,7 @@ const PoolInfoContainer = () => {
   const [firstTxnTime, setFirstTxnTime] = useState();
   const [lastTxnTime, setLastTxnTime] = useState();
   const [fromLocation, setFromLocation] = useState();
+  const [hasErrors, setHasErrors] = useState(false);
   const timerRef = useRef(null);
 
   // Function to refresh pool details and transactions data
@@ -126,30 +129,35 @@ const PoolInfoContainer = () => {
   // Set initial data
   useEffect(() => {
     const setInitData = async () => {
-      if (pact?.tokensUsdPrice) {
-        const [dexscanPoolDetails, dexscanPoolTransactions] = await Promise.all([
-          getAnalyticsDexscanPoolDetails(pool),
-          getAnalyticsDexscanPoolTransactions(pool),
-        ]);
+      try {
+        if (pact?.tokensUsdPrice) {
+          const [dexscanPoolDetails, dexscanPoolTransactions] = await Promise.all([
+            getAnalyticsDexscanPoolDetails(pool),
+            getAnalyticsDexscanPoolTransactions(pool),
+          ]);
 
-        const pairInfo = pact.allPairs[`${dexscanPoolDetails.token1.address}:${dexscanPoolDetails.token0.address}`];
-        const token0Info = pact.allTokens[dexscanPoolDetails.token0.name];
-        const token1Info = pact.allTokens[dexscanPoolDetails.token1.name];
+          const pairInfo = pact.allPairs[`${dexscanPoolDetails.token1.address}:${dexscanPoolDetails.token0.address}`];
+          const token0Info = pact.allTokens[dexscanPoolDetails.token0.name];
+          const token1Info = pact.allTokens[dexscanPoolDetails.token1.name];
 
-        const data = {
-          token0Info,
-          token1Info,
-          ...pairInfo,
-          ...dexscanPoolDetails,
-        };
+          const data = {
+            token0Info,
+            token1Info,
+            ...pairInfo,
+            ...dexscanPoolDetails,
+          };
 
-        const formattedTransactions = formatTransactions(dexscanPoolTransactions);
+          const formattedTransactions = formatTransactions(dexscanPoolTransactions);
 
-        setFirstTxnTime(formattedTransactions[0].timestampInSeconds);
-        setLastTxnTime(formattedTransactions[formattedTransactions.length - 1].timestampInSeconds);
+          setFirstTxnTime(formattedTransactions[0].timestampInSeconds);
+          setLastTxnTime(formattedTransactions[formattedTransactions.length - 1].timestampInSeconds);
 
-        setPoolDetails(data);
-        setTransactions(formattedTransactions);
+          setPoolDetails(data);
+          setTransactions(formattedTransactions);
+          setLoading(false);
+        }
+      } catch (error) {
+        setHasErrors(true);
         setLoading(false);
       }
     };
@@ -184,6 +192,20 @@ const PoolInfoContainer = () => {
 
   if (loading) {
     return <AppLoader className="h-100 w-100 align-ce justify-ce" />;
+  }
+
+  if (hasErrors) {
+    return (
+      <div className="flex h-100 align-ce justify-ce">
+        <Banner
+          position="center"
+          text={`Temporarily Unavailable: The ${pool.replace(
+            ':',
+            '/'
+          )} pool analytics page is currently down for maintenance. We're working to restore it promptly.`}
+        />
+      </div>
+    );
   }
 
   const header = (
@@ -309,7 +331,7 @@ const PoolInfoContainer = () => {
       <CustomButton
         fontSize={13}
         buttonStyle={{ height: 33, width: 200 }}
-        type="gradient"
+        type="secondary"
         fontFamily="syncopate"
         onClick={() => history.push(ROUTE_SWAP.concat(`?token0=${poolDetails.token1.name}&token1=${poolDetails.token0.name}`), { from: pathname })}
       >
@@ -318,7 +340,7 @@ const PoolInfoContainer = () => {
       <CustomButton
         fontSize={13}
         buttonStyle={{ height: 33, width: 200 }}
-        type="gradient"
+        type="secondary"
         fontFamily="syncopate"
         onClick={() =>
           history.push(ROUTE_LIQUIDITY_ADD_LIQUIDITY_SINGLE_SIDED.concat(`?token0=${poolDetails.token0.name}&token1=${poolDetails.token1.name}`), {
@@ -436,7 +458,7 @@ const renderColumns = (history, poolDetails) => {
       render: ({ item }) => (
         <FlexContainer className="align-ce">
           <Label color={getColor(item)} labelStyle={{ whiteSpace: 'nowrap' }}>
-            {formatPrice(item.price, poolDetails.precision)}
+            <DecimalFormatted value={item.price} />
           </Label>
         </FlexContainer>
       ),

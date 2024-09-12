@@ -43,7 +43,7 @@ const AnalyticsContainer = () => {
           setPoolState(res);
         });
         getAnalyticsData(moment().subtract(1, 'day').format('YYYY-MM-DD'), moment().format('YYYY-MM-DD')).then((res) => {
-          if(res){
+          if (res) {
             setAnalyticsData(res[res.length - 1]);
           }
         });

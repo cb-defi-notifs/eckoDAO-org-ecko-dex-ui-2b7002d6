@@ -12,6 +12,7 @@ import { commonColors, theme } from '../../styles/theme';
 import AppLoader from '../shared/AppLoader';
 import styled from 'styled-components';
 import DecimalFormatted from '../shared/DecimalFormatted';
+import Banner from '../../components/layout/header/Banner';
 
 const getPairInfoPactContext = (allPairs, token0, token1) => {
   return allPairs[`${token1}:${token0}`] || allPairs[`${token0}:${token1}`];
@@ -24,44 +25,61 @@ const Pools = ({ verifiedActive }) => {
   const history = useHistory();
 
   const [loading, setLoading] = useState(true);
+  const [hasErrors, setHasErrors] = useState(false);
 
   const [statsData, setStatsData] = useState([]);
   const [verifiedStatsData, setVerifiedStatsData] = useState([]);
 
   useEffect(() => {
     const setInitData = async () => {
-      if (pact?.tokensUsdPrice) {
-        const data = [];
-        const dexscanPoolsStats = await getAnalyticsDexscanPoolsData();
+      try {
+        if (pact?.tokensUsdPrice) {
+          const data = [];
+          const dexscanPoolsStats = await getAnalyticsDexscanPoolsData();
 
-        const kaddexDexscanPoolsStats = dexscanPoolsStats.filter((d) => d.exchange.name === 'KADDEX');
+          const kaddexDexscanPoolsStats = dexscanPoolsStats.filter((d) => d.exchange.name === 'KADDEX');
 
-        for (const dexscanPool of kaddexDexscanPoolsStats) {
-          const pairInfo = getPairInfoPactContext(pact.allPairs, dexscanPool.token0.address, dexscanPool.token1.address);
-          const tokenInfo = pact.allTokens[dexscanPool.token0.name];
+          for (const dexscanPool of kaddexDexscanPoolsStats) {
+            const pairInfo = getPairInfoPactContext(pact.allPairs, dexscanPool.token0.address, dexscanPool.token1.address);
+            const tokenInfo = pact.allTokens[dexscanPool.token0.name];
 
-          if (!pairInfo || !tokenInfo) {
-            continue;
+            if (!pairInfo || !tokenInfo) {
+              continue;
+            }
+
+            data.push({
+              ...pairInfo,
+              ...tokenInfo,
+              ...dexscanPool,
+            });
           }
 
-          data.push({
-            ...pairInfo,
-            ...tokenInfo,
-            ...dexscanPool,
-          });
+          setStatsData(data.sort((x, y) => y.volume24h - x.volume24h));
+
+          const dataVerified = data.filter((r) => r.isVerified);
+          setVerifiedStatsData(dataVerified.sort((x, y) => y.volume24h - x.volume24h));
+
+          setLoading(false);
         }
-
-        setStatsData(data.sort((x, y) => y.volume24h - x.volume24h));
-
-        const dataVerified = data.filter((r) => r.isVerified);
-        setVerifiedStatsData(dataVerified.sort((x, y) => y.volume24h - x.volume24h));
-
+      } catch (error) {
+        setHasErrors(true);
         setLoading(false);
       }
     };
 
     setInitData();
   }, [pact.allPairs, pact.allTokens, pact.tokensUsdPrice]);
+
+  if (!loading && (hasErrors || !statsData?.length > 0)) {
+    return (
+      <div className="flex h-100 align-ce justify-ce">
+        <Banner
+          position="center"
+          text={`Temporarily Unavailable: the stats page is currently down for maintenance. We're working to restore it promptly.`}
+        />
+      </div>
+    );
+  }
 
   return !loading ? (
     <CommonTable

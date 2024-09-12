@@ -33,10 +33,12 @@ const Dex = ({ kdaPrice, kdxSupply, poolState }) => {
   const stakedKdx = extractDecimal((poolState && poolState['staked-kdx']) || 0);
 
   useEffect(() => {
-    getPairList(allPairs).then((pL) => {
-      setLocalPairList(pL);
-    });
-  }, []);
+    if (allPairs) {
+      getPairList(allPairs).then((pL) => {
+        setLocalPairList(pL);
+      });
+    }
+  }, [allPairs]);
 
   const getTVLDetails = async () => {
     if (localPairList?.length) {
@@ -157,7 +159,7 @@ const Dex = ({ kdaPrice, kdxSupply, poolState }) => {
     <AppLoader containerStyle={{ height: '100%', alignItems: 'center', justifyContent: 'center' }} />
   ) : (
     <FlexContainer className="w-100 column" mobileClassName="column" gap={24} style={{ paddingBottom: 32 }}>
-      <FlexContainer className="w-100" mobileClassName="column" tabletClassName="column" gap={24}>
+      <FlexContainer mobileClassName="column" gap={24}>
         <TVLChart kdaPrice={kdaPrice} height={300} />
 
         <VolumeChart kdaPrice={kdaPrice} height={300} />
@@ -191,7 +193,7 @@ const Dex = ({ kdaPrice, kdxSupply, poolState }) => {
                     width: 32,
                     height: 16,
                     borderRadius: 4,
-                    background: 'linear-gradient(to right, #5dcbe5, #e37480, #f6cc7d)',
+                    background: 'linear-gradient(to right, #FFD300, #FF00B8)',
                     marginRight: 8,
                   }}
                 ></div>

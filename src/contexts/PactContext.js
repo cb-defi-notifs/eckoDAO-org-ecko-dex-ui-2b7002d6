@@ -8,12 +8,13 @@ import { getTokenUsdPriceByName } from '../utils/token-utils';
 import { CHAIN_ID, creationTime, FEE, GAS_PRICE, NETWORK, KADDEX_NAMESPACE } from '../constants/contextConstants';
 import { useNotificationContext, useWalletContext } from '.';
 import { fetchPrecision, getPairList } from '../api/pact';
-import tokenData, { pairsData, blacklistedTokenData } from '../constants/cryptoCurrencies';
+import {tokenData, pairsData, blacklistedTokenData } from '../constants/cryptoCurrencies';
 import { GAS_OPTIONS } from '../constants/gasConfiguration';
 import { getPairs, getTokenNameFromAddress } from '../api/pairs';
 import { UnknownLogo } from '../assets';
 import { reduceBalance } from '../utils/reduceBalance';
 import { getAnalyticsKdaUsdPrice, getCoingeckoUsdPrice } from '../api/coingecko';
+import { getAnalyticsDexscanPoolsData } from '../api/kaddex-analytics';
 
 export const PactContext = createContext();
 
@@ -150,9 +151,10 @@ export const PactProvider = (props) => {
   const updateTokenUsdPrice = async (kdaPrice) => {
     const pairList = await getPairList(allPairs);
     const result = {};
+    const dexscanPoolsStats = await getAnalyticsDexscanPoolsData();
     if (allTokens) {
       for (const token of Object.values(allTokens)) {
-        await getTokenUsdPriceByName(token.name, pairList, allTokens, kdaPrice).then((price) => {
+        await getTokenUsdPriceByName(token.name, pairList, allTokens, kdaPrice, dexscanPoolsStats).then((price) => {
           result[token.name] = price;
         });
       }
@@ -346,7 +348,7 @@ export const PactProvider = (props) => {
       let reserveIn = Number(pairReserve['token0']);
       let numerator = Number(amountIn * (1 - FEE) * reserveOut);
       let denominator = Number(reserveIn + amountIn * (1 - FEE));
-      return numerator / denominator;
+      return denominator !== 0 ? numerator / denominator : 0;
     }
   };
 
@@ -360,7 +362,7 @@ export const PactProvider = (props) => {
       let numerator = Number(reserveIn * amountOut);
       let denominator = Number((reserveOut - amountOut) * (1 - FEE));
       // round up the last digit
-      return numerator / denominator;
+      return denominator !== 0 ? numerator / denominator : 0;
     }
   };
 
@@ -402,7 +404,7 @@ export const PactProvider = (props) => {
 
     let numerator = Number(amountIn * (1 - FEE) * reserveOutNumber);
     let denominator = Number(reserveInNumber + amountIn * (1 - FEE));
-    return numerator / denominator;
+    return denominator !== 0 ? numerator / denominator : 0;
   };
 
   //COMPUTE_IN_MULTIHOPS
@@ -412,7 +414,7 @@ export const PactProvider = (props) => {
     let numerator = Number(reserveInNumber * amountOut);
     let denominator = Number((reserveOutNumber - amountOut) * (1 - FEE));
     // round up the last digit
-    return numerator / denominator;
+    return denominator !== 0 ? numerator / denominator : 0;
   };
 
   //COMPUTE_PRICE_IMPACT
@@ -422,9 +424,9 @@ export const PactProvider = (props) => {
     } else {
       const reserveOut = Number(pairReserve['token1']);
       const reserveIn = Number(pairReserve['token0']);
-      const midPrice = reserveOut / reserveIn;
+      const midPrice = reserveIn !== 0 ? reserveOut / reserveIn : 0;
       const exactQuote = amountIn * midPrice;
-      const slippage = (exactQuote - amountOut) / exactQuote;
+      const slippage = exactQuote !== 0 ? (exactQuote - amountOut) / exactQuote : 0;
       return slippage;
     }
   }
@@ -455,9 +457,9 @@ export const PactProvider = (props) => {
 
   //COMPUTE_PRICE_IMPACT_MULTIHOPS
   function computePriceImpactMultihops(amountIn, amountOut, reserveIn, reserveOut) {
-    const midPrice = reserveOut / reserveIn;
+    const midPrice = reserveIn !== 0 ? reserveOut / reserveIn : 0;
     const exactQuote = amountIn * midPrice;
-    const slippage = (exactQuote - amountOut) / exactQuote;
+    const slippage = exactQuote !== 0 ? (exactQuote - amountOut) / exactQuote : 0;
     return slippage;
   }
 

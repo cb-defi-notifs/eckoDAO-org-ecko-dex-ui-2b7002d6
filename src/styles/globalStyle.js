@@ -210,6 +210,13 @@ export default createGlobalStyle`
       height: 100%;
     }
 
+    .w-50 {
+      width: 50%;
+    }
+    .h-50 {
+      height: 50%;
+    }
+
     .flex-1 {
       flex: 1;
     }
@@ -277,6 +284,20 @@ export default createGlobalStyle`
       @media (max-width: ${({ theme: { mediaQueries } }) => `${mediaQueries.mobilePixel - 1}px`}) {
         padding-top: 24px;
         padding-bottom: 24px;
+      }
+    }
+
+    .analytics-tvl-container {
+      width: 50%;
+      @media (max-width: ${({ theme: { mediaQueries } }) => `${mediaQueries.mobilePixel - 1}px`}) {
+        width: 100%;
+      }
+    }
+
+    .analytics-volumes-container {
+      width: 50%;
+      @media (max-width: ${({ theme: { mediaQueries } }) => `${mediaQueries.mobilePixel - 1}px`}) {
+        width: 100%;
       }
     }
 `;
